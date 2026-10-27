@@ -1,0 +1,10 @@
+.git
+.bin
+bin/
+tmp/
+*.md
+.env
+.DS_Store
+coverage.*
+*.test
+postgres-data/

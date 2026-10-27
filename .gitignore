@@ -1,0 +1,26 @@
+# Binaries
+/bin/
+/tmp/
+*.exe
+*.dll
+*.so
+*.dylib
+trip-api
+
+# Test / coverage
+*.out
+*.test
+coverage.html
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Env
+.env
+!.env.example
+
+# Local data
+postgres-data/

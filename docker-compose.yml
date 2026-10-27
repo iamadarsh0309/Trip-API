@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: trip-api-postgres
+    environment:
+      POSTGRES_USER: trip
+      POSTGRES_PASSWORD: trip
+      POSTGRES_DB: tripdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trip -d tripdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trip-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      APP_PORT: "8080"
+      GIN_MODE: release
+      DATABASE_URL: postgres://trip:trip@postgres:5432/tripdb?sslmode=disable
+      MIGRATIONS_PATH: file:///app/migrations
+    ports:
+      - "8080:8080"
+
+volumes:
+  postgres_data:
