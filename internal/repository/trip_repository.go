@@ -61,7 +61,7 @@ func (r *TripRepository) CreateWithIdempotency(
 	if err != nil {
 		return nil, fmt.Errorf("begin tx: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	var existing IdempotencyRecord
 	err = tx.QueryRow(ctx, `
@@ -199,7 +199,7 @@ func (r *TripRepository) UpdateStatus(ctx context.Context, id uuid.UUID, next do
 	if err != nil {
 		return nil, "", fmt.Errorf("begin tx: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	trip, err := r.scanTrip(ctx, tx, `
 		SELECT id, trip_number, source, destination, driver_name, status, version, created_at, updated_at

@@ -1,0 +1,31 @@
+#!/usr/bin/env sh
+set -eu
+
+# Skip the hook when the commit has no staged Go files. gofmt is the only check
+# that needs the staged file list; vet, lint, and tests always cover the module.
+staged=$(git diff --cached --name-only --diff-filter=ACMR -- '*.go' || true)
+if [ -z "$staged" ]; then
+	exit 0
+fi
+
+failed=0
+while IFS= read -r file; do
+	[ -z "$file" ] && continue
+	[ -f "$file" ] || continue
+	if [ -n "$(gofmt -l "$file")" ]; then
+		echo "pre-commit: gofmt needed for $file"
+		failed=1
+	fi
+done <<EOF
+$staged
+EOF
+
+if [ "$failed" -ne 0 ]; then
+	echo "pre-commit: run 'make fmt', stage the changes, and commit again."
+	exit 1
+fi
+
+echo "pre-commit: running vet, lint, and tests"
+make vet
+make lint
+make test

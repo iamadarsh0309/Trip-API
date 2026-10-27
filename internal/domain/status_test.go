@@ -1,6 +1,9 @@
 package domain
 
-import "testing"
+import (
+	"errors"
+	"testing"
+)
 
 func TestValidateTransition_HappyPath(t *testing.T) {
 	path := []Status{StatusCreated, StatusAssigned, StatusInTransit, StatusCompleted}
@@ -49,7 +52,8 @@ func TestValidateTransition_RejectsBackwardsAndJumps(t *testing.T) {
 		if err == nil {
 			t.Fatalf("expected %s -> %s to be invalid", tc.from, tc.to)
 		}
-		if _, ok := err.(*InvalidTransitionError); !ok {
+		var transitionErr *InvalidTransitionError
+		if !errors.As(err, &transitionErr) {
 			t.Fatalf("expected InvalidTransitionError, got %T", err)
 		}
 	}

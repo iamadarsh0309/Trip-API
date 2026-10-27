@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -157,7 +158,8 @@ func (h *TripHandler) Health(c *gin.Context) {
 
 func writeValidationError(c *gin.Context, err error) {
 	details := []string{}
-	if ve, ok := err.(validator.ValidationErrors); ok {
+	var ve validator.ValidationErrors
+	if errors.As(err, &ve) {
 		for _, fe := range ve {
 			details = append(details, fe.Field()+" failed on '"+fe.Tag()+"' validation")
 		}
