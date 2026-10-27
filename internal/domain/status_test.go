@@ -20,8 +20,10 @@ func TestValidateTransition_CancelAllowed(t *testing.T) {
 }
 
 func TestValidateTransition_NoopSameStatus(t *testing.T) {
-	if err := ValidateTransition(StatusAssigned, StatusAssigned); err != nil {
-		t.Fatalf("same-status should be no-op: %v", err)
+	for _, st := range []Status{StatusCreated, StatusAssigned, StatusInTransit, StatusCompleted, StatusCancelled} {
+		if err := ValidateTransition(st, st); err != nil {
+			t.Fatalf("same-status %s should be no-op: %v", st, err)
+		}
 	}
 }
 
@@ -34,9 +36,12 @@ func TestValidateTransition_RejectsBackwardsAndJumps(t *testing.T) {
 		{StatusInTransit, StatusAssigned},
 		{StatusCreated, StatusInTransit},
 		{StatusCreated, StatusCompleted},
+		{StatusAssigned, StatusCompleted},
 		{StatusCompleted, StatusCancelled},
 		{StatusCompleted, StatusAssigned},
 		{StatusCancelled, StatusCreated},
+		{StatusCancelled, StatusAssigned},
+		{StatusInTransit, StatusCreated},
 	}
 
 	for _, tc := range cases {
@@ -58,13 +63,47 @@ func TestParseStatus(t *testing.T) {
 	if _, err := ParseStatus("FLYING"); err == nil {
 		t.Fatal("expected invalid status error")
 	}
+	if _, err := ParseStatus(""); err == nil {
+		t.Fatal("expected empty status to fail")
+	}
 }
 
 func TestCanTransitionTo(t *testing.T) {
 	if !CanTransitionTo(StatusCreated, StatusAssigned) {
 		t.Fatal("CREATED -> ASSIGNED should be allowed")
 	}
+	if !CanTransitionTo(StatusCreated, StatusCreated) {
+		t.Fatal("same status should be allowed")
+	}
 	if CanTransitionTo(StatusCompleted, StatusAssigned) {
 		t.Fatal("COMPLETED -> ASSIGNED should be disallowed")
+	}
+}
+
+func TestIsTerminal(t *testing.T) {
+	if !StatusCompleted.IsTerminal() || !StatusCancelled.IsTerminal() {
+		t.Fatal("completed/cancelled should be terminal")
+	}
+	if StatusCreated.IsTerminal() || StatusAssigned.IsTerminal() || StatusInTransit.IsTerminal() {
+		t.Fatal("non-terminal statuses marked terminal")
+	}
+}
+
+func TestIsValid(t *testing.T) {
+	for _, st := range []Status{StatusCreated, StatusAssigned, StatusInTransit, StatusCompleted, StatusCancelled} {
+		if !st.IsValid() {
+			t.Fatalf("%s should be valid", st)
+		}
+	}
+	if Status("NOPE").IsValid() {
+		t.Fatal("invalid status reported valid")
+	}
+}
+
+func TestInvalidTransitionErrorMessage(t *testing.T) {
+	err := &InvalidTransitionError{From: StatusCreated, To: StatusCompleted}
+	want := "invalid status transition from CREATED to COMPLETED"
+	if err.Error() != want {
+		t.Fatalf("got %q want %q", err.Error(), want)
 	}
 }
