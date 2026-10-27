@@ -41,7 +41,13 @@ make migrate-up   # optional; API also migrates on boot
 make run
 ```
 
-## API overview
+## API documentation
+
+Full endpoint reference (request/response examples, status codes, error codes, curl cookbook):
+
+- **[docs/API.md](docs/API.md)** — human-readable API docs
+- **[docs/swagger.yaml](docs/swagger.yaml)** / **[docs/swagger.json](docs/swagger.json)** — OpenAPI 2.0 specs
+- Interactive UI (when server is running): [http://localhost:8080/swagger/index.html](http://localhost:8080/swagger/index.html)
 
 | Method | Path | Notes |
 |--------|------|-------|
@@ -53,7 +59,7 @@ make run
 | `GET` | `/health` | DB ping |
 | `GET` | `/swagger/index.html` | OpenAPI UI |
 
-### Create a trip
+Quick create example:
 
 ```bash
 curl -s -X POST http://localhost:8080/trips \
@@ -66,37 +72,6 @@ curl -s -X POST http://localhost:8080/trips \
     "driver_name": "Rahul Sharma"
   }'
 ```
-
-Replaying the same key + body returns **200** with the original trip payload.  
-Reusing the key with a different body returns **409** `IDEMPOTENCY_KEY_REUSED`.
-
-### Update status
-
-```bash
-curl -s -X PATCH http://localhost:8080/trips/<TRIP_ID>/status \
-  -H 'Content-Type: application/json' \
-  -d '{"status":"ASSIGNED"}'
-```
-
-### List with filter + pagination
-
-```bash
-curl -s 'http://localhost:8080/trips?status=CREATED&page=1&page_size=20'
-```
-
-## Error envelope
-
-```json
-{
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "invalid request",
-    "details": []
-  }
-}
-```
-
-Common codes: `VALIDATION_ERROR`, `NOT_FOUND`, `INVALID_STATUS_TRANSITION`, `TRIP_NUMBER_CONFLICT`, `IDEMPOTENCY_KEY_REUSED`, `MISSING_IDEMPOTENCY_KEY`.
 
 ## Project layout
 
@@ -129,3 +104,5 @@ make docker-down
 ```bash
 make test
 ```
+
+Coverage includes domain status transitions, service idempotency/conflict mapping, HTTP handler flows (create → replay → status → list → delete), config loading, and error envelope helpers.
