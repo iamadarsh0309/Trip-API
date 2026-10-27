@@ -1,0 +1,325 @@
+basePath: /
+definitions:
+  github_com_iamadarsh0309_Trip-API_internal_dto.CreateTripRequest:
+    properties:
+      destination:
+        example: Hyderabad
+        maxLength: 255
+        minLength: 1
+        type: string
+      driver_name:
+        example: Rahul Sharma
+        maxLength: 255
+        minLength: 1
+        type: string
+      source:
+        example: Bangalore
+        maxLength: 255
+        minLength: 1
+        type: string
+      trip_number:
+        example: TRIP-1001
+        maxLength: 64
+        minLength: 1
+        type: string
+    required:
+    - destination
+    - driver_name
+    - source
+    - trip_number
+    type: object
+  github_com_iamadarsh0309_Trip-API_internal_dto.ListTripsResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/github_com_iamadarsh0309_Trip-API_internal_dto.TripResponse'
+        type: array
+      page:
+        example: 1
+        type: integer
+      page_size:
+        example: 20
+        type: integer
+      total:
+        example: 42
+        type: integer
+    type: object
+  github_com_iamadarsh0309_Trip-API_internal_dto.TripResponse:
+    properties:
+      created_at:
+        type: string
+      destination:
+        example: Hyderabad
+        type: string
+      driver_name:
+        example: Rahul Sharma
+        type: string
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      source:
+        example: Bangalore
+        type: string
+      status:
+        example: CREATED
+        type: string
+      trip_number:
+        example: TRIP-1001
+        type: string
+      updated_at:
+        type: string
+    type: object
+  github_com_iamadarsh0309_Trip-API_internal_dto.UpdateStatusRequest:
+    properties:
+      status:
+        example: ASSIGNED
+        type: string
+    required:
+    - status
+    type: object
+  github_com_iamadarsh0309_Trip-API_internal_httperr.Code:
+    enum:
+    - VALIDATION_ERROR
+    - NOT_FOUND
+    - INVALID_STATUS_TRANSITION
+    - TRIP_NUMBER_CONFLICT
+    - IDEMPOTENCY_KEY_REUSED
+    - MISSING_IDEMPOTENCY_KEY
+    - INTERNAL_ERROR
+    - BAD_REQUEST
+    type: string
+    x-enum-varnames:
+    - CodeValidationError
+    - CodeNotFound
+    - CodeInvalidStatusTransition
+    - CodeTripNumberConflict
+    - CodeIdempotencyKeyReused
+    - CodeMissingIdempotencyKey
+    - CodeInternalError
+    - CodeBadRequest
+  github_com_iamadarsh0309_Trip-API_internal_httperr.Envelope:
+    properties:
+      error:
+        $ref: '#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.ErrorBody'
+    type: object
+  github_com_iamadarsh0309_Trip-API_internal_httperr.ErrorBody:
+    properties:
+      code:
+        $ref: '#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.Code'
+      details:
+        items:
+          type: string
+        type: array
+      message:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: REST API for managing trips with idempotent creates and enforced status
+    transitions.
+  title: Trip Management API
+  version: "1.0"
+paths:
+  /health:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.Envelope'
+      summary: Health check
+      tags:
+      - system
+  /trips:
+    get:
+      description: Returns paginated trips with optional status filter
+      parameters:
+      - description: Filter by status
+        enum:
+        - CREATED
+        - ASSIGNED
+        - IN_TRANSIT
+        - COMPLETED
+        - CANCELLED
+        in: query
+        name: status
+        type: string
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Page size (default 20, max 100)
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_iamadarsh0309_Trip-API_internal_dto.ListTripsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.Envelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.Envelope'
+      summary: List trips
+      tags:
+      - trips
+    post:
+      consumes:
+      - application/json
+      description: Creates a new trip. Requires Idempotency-Key header to prevent
+        duplicate creates.
+      parameters:
+      - description: Client-generated idempotency key (16-128 chars)
+        in: header
+        name: Idempotency-Key
+        required: true
+        type: string
+      - description: Trip payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_iamadarsh0309_Trip-API_internal_dto.CreateTripRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Idempotent replay of a previous successful create
+          schema:
+            $ref: '#/definitions/github_com_iamadarsh0309_Trip-API_internal_dto.TripResponse'
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_iamadarsh0309_Trip-API_internal_dto.TripResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.Envelope'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.Envelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.Envelope'
+      summary: Create a trip
+      tags:
+      - trips
+  /trips/{id}:
+    delete:
+      parameters:
+      - description: Trip UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.Envelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.Envelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.Envelope'
+      summary: Delete a trip
+      tags:
+      - trips
+    get:
+      parameters:
+      - description: Trip UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_iamadarsh0309_Trip-API_internal_dto.TripResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.Envelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.Envelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.Envelope'
+      summary: Get trip by ID
+      tags:
+      - trips
+  /trips/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Enforces valid status transitions under row-level locking
+      parameters:
+      - description: Trip UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: New status
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_iamadarsh0309_Trip-API_internal_dto.UpdateStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_iamadarsh0309_Trip-API_internal_dto.TripResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.Envelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.Envelope'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.Envelope'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.Envelope'
+      summary: Update trip status
+      tags:
+      - trips
+schemes:
+- http
+swagger: "2.0"

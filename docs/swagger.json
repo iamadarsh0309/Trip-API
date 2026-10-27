@@ -1,0 +1,470 @@
+{
+    "schemes": [
+        "http"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "REST API for managing trips with idempotent creates and enforced status transitions.",
+        "title": "Trip Management API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/",
+    "paths": {
+        "/health": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "system"
+                ],
+                "summary": "Health check",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.Envelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/trips": {
+            "get": {
+                "description": "Returns paginated trips with optional status filter",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "trips"
+                ],
+                "summary": "List trips",
+                "parameters": [
+                    {
+                        "enum": [
+                            "CREATED",
+                            "ASSIGNED",
+                            "IN_TRANSIT",
+                            "COMPLETED",
+                            "CANCELLED"
+                        ],
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (default 20, max 100)",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_iamadarsh0309_Trip-API_internal_dto.ListTripsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.Envelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.Envelope"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Creates a new trip. Requires Idempotency-Key header to prevent duplicate creates.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "trips"
+                ],
+                "summary": "Create a trip",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Client-generated idempotency key (16-128 chars)",
+                        "name": "Idempotency-Key",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Trip payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_iamadarsh0309_Trip-API_internal_dto.CreateTripRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Idempotent replay of a previous successful create",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_iamadarsh0309_Trip-API_internal_dto.TripResponse"
+                        }
+                    },
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_iamadarsh0309_Trip-API_internal_dto.TripResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.Envelope"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.Envelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.Envelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/trips/{id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "trips"
+                ],
+                "summary": "Get trip by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Trip UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_iamadarsh0309_Trip-API_internal_dto.TripResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.Envelope"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.Envelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.Envelope"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "trips"
+                ],
+                "summary": "Delete a trip",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Trip UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.Envelope"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.Envelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.Envelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/trips/{id}/status": {
+            "patch": {
+                "description": "Enforces valid status transitions under row-level locking",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "trips"
+                ],
+                "summary": "Update trip status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Trip UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "New status",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_iamadarsh0309_Trip-API_internal_dto.UpdateStatusRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_iamadarsh0309_Trip-API_internal_dto.TripResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.Envelope"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.Envelope"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.Envelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.Envelope"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "github_com_iamadarsh0309_Trip-API_internal_dto.CreateTripRequest": {
+            "type": "object",
+            "required": [
+                "destination",
+                "driver_name",
+                "source",
+                "trip_number"
+            ],
+            "properties": {
+                "destination": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "example": "Hyderabad"
+                },
+                "driver_name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "example": "Rahul Sharma"
+                },
+                "source": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "example": "Bangalore"
+                },
+                "trip_number": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "minLength": 1,
+                    "example": "TRIP-1001"
+                }
+            }
+        },
+        "github_com_iamadarsh0309_Trip-API_internal_dto.ListTripsResponse": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_iamadarsh0309_Trip-API_internal_dto.TripResponse"
+                    }
+                },
+                "page": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "page_size": {
+                    "type": "integer",
+                    "example": 20
+                },
+                "total": {
+                    "type": "integer",
+                    "example": 42
+                }
+            }
+        },
+        "github_com_iamadarsh0309_Trip-API_internal_dto.TripResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "destination": {
+                    "type": "string",
+                    "example": "Hyderabad"
+                },
+                "driver_name": {
+                    "type": "string",
+                    "example": "Rahul Sharma"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "source": {
+                    "type": "string",
+                    "example": "Bangalore"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "CREATED"
+                },
+                "trip_number": {
+                    "type": "string",
+                    "example": "TRIP-1001"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_iamadarsh0309_Trip-API_internal_dto.UpdateStatusRequest": {
+            "type": "object",
+            "required": [
+                "status"
+            ],
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "example": "ASSIGNED"
+                }
+            }
+        },
+        "github_com_iamadarsh0309_Trip-API_internal_httperr.Code": {
+            "type": "string",
+            "enum": [
+                "VALIDATION_ERROR",
+                "NOT_FOUND",
+                "INVALID_STATUS_TRANSITION",
+                "TRIP_NUMBER_CONFLICT",
+                "IDEMPOTENCY_KEY_REUSED",
+                "MISSING_IDEMPOTENCY_KEY",
+                "INTERNAL_ERROR",
+                "BAD_REQUEST"
+            ],
+            "x-enum-varnames": [
+                "CodeValidationError",
+                "CodeNotFound",
+                "CodeInvalidStatusTransition",
+                "CodeTripNumberConflict",
+                "CodeIdempotencyKeyReused",
+                "CodeMissingIdempotencyKey",
+                "CodeInternalError",
+                "CodeBadRequest"
+            ]
+        },
+        "github_com_iamadarsh0309_Trip-API_internal_httperr.Envelope": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "$ref": "#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.ErrorBody"
+                }
+            }
+        },
+        "github_com_iamadarsh0309_Trip-API_internal_httperr.ErrorBody": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "$ref": "#/definitions/github_com_iamadarsh0309_Trip-API_internal_httperr.Code"
+                },
+                "details": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}
